@@ -447,12 +447,40 @@ char *yytext;
 #line 2 "Ex2.l"
 #include <stdio.h> 
 #include <stdlib.h> 
-float a; 
-float b; 
-float r;
-enum { NUM, SOMA, SUB, MULT, DIV, MISC, TOKEN_EOF }; 
-#line 455 "lex.yy.c"
-#line 456 "lex.yy.c"
+#define TAM 50
+enum { SOMA, SUB, MULT, DIV, MISC, TOKEN_EOF }; 
+
+typedef struct {
+  int top;
+  float items[TAM];
+} Pilha;
+
+void init(Pilha *p) {
+    p->top = -1;
+}
+
+void push(Pilha *p, float f){
+  if(p->top >= TAM - 1){
+    printf("Pilha cheia!");
+    return;
+  }
+  p->top++;
+  p->items[p->top] = f;
+}
+
+float pop(Pilha *p){
+  if(p->top <= -1){
+    printf("Pilha vazia");
+    return 0;
+  }
+  p->top--;
+  return p->items[p->top+1];
+}
+
+Pilha p;
+
+#line 483 "lex.yy.c"
+#line 484 "lex.yy.c"
 
 #define INITIAL 0
 
@@ -669,10 +697,10 @@ YY_DECL
 		}
 
 	{
-#line 10 "Ex2.l"
+#line 38 "Ex2.l"
 
 
-#line 676 "lex.yy.c"
+#line 704 "lex.yy.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -731,45 +759,45 @@ do_action:	/* This label is used only to access EOF actions. */
 
 case 1:
 YY_RULE_SETUP
-#line 12 "Ex2.l"
-return NUM; 
+#line 40 "Ex2.l"
+{ push(&p, atof(yytext)); }
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 13 "Ex2.l"
+#line 41 "Ex2.l"
 return SOMA;
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 14 "Ex2.l"
+#line 42 "Ex2.l"
 return SUB;
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 15 "Ex2.l"
+#line 43 "Ex2.l"
 return MULT;
 	YY_BREAK
 case 5:
 YY_RULE_SETUP
-#line 16 "Ex2.l"
+#line 44 "Ex2.l"
 return DIV;
 	YY_BREAK
 case 6:
 /* rule 6 can match eol */
 YY_RULE_SETUP
-#line 17 "Ex2.l"
+#line 45 "Ex2.l"
 return MISC; 
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
-#line 18 "Ex2.l"
+#line 46 "Ex2.l"
 return TOKEN_EOF; 
 	YY_BREAK
 case 7:
 YY_RULE_SETUP
-#line 20 "Ex2.l"
+#line 48 "Ex2.l"
 ECHO;
 	YY_BREAK
-#line 773 "lex.yy.c"
+#line 801 "lex.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -1772,37 +1800,44 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 20 "Ex2.l"
+#line 48 "Ex2.l"
 
 int main() 
 { 
   int token; 
+  init(&p);
+  float a, b, r;
+
   do { 
     switch( token=yylex() ) { 
-      case NUM: 
-        a = b;  
-        b = atof(yytext);
-        break; 
-      case SOMA:  
-        r=a+b;
-        printf("%f+%f=%f\n", a,b,r);
-        b=r;
+      case SOMA: 
+        a = pop(&p);
+        b = pop(&p);
+        r = b + a;
+        push(&p, r);
+        printf("Soma: %f+%f=%f\n", b,a,r);
         break; 
       case SUB:
-        r=a-b;
-        printf("%f-%f=%f\n", a,b,r);
-        b=r;
-        break;
+        a = pop(&p);
+        b = pop(&p);
+        r = b - a;
+        push(&p, r);
+        printf("Subtracao: %f-%f=%f\n", b,a,r);
+        break; 
       case MULT:
-        r=a*b;
-        printf("%f*%f=%f\n", a,b,r);
-        b=r;
-        break;
+        a = pop(&p);
+        b = pop(&p);
+        r = b * a;
+        push(&p, r);
+        printf("Multiplicacao: %f*%f=%f\n", b,a,r);
+        break; 
       case DIV:
-        r=a/b;
-        printf("%f/%f=%f\n", a,b,r);
-        b=r;
-        break;
+        a = pop(&p);
+        b = pop(&p);
+        r = b / a;
+        push(&p, r);
+        printf("Divisao: %f/%f=%f\n", b,a,r);
+        break; 
       /* outro TOKEN_*: ignorar */ 
       } 
     } 
