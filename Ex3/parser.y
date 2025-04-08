@@ -30,10 +30,10 @@ calc:
 
 exp: NUMBER 
  | VAR { $$ = vars[$1-'a']; }
- | exp exp ADD { $$ = $1 + $2; }
- | exp exp SUB { $$ = $1 - $2; }
- | exp exp MUL { $$ = $1 * $2; }
- | exp exp DIV { $$ = $1 / $2; }
+ | exp exp ADD { $$ = $2 + $1; }
+ | exp exp SUB { $$ = $2 - $1; }
+ | exp exp MUL { $$ = $2 * $1; }
+ | exp exp DIV { $$ = $2 / $1; }
  ;
 
 atrib:
