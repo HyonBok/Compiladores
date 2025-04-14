@@ -6,26 +6,28 @@
 
 [0-9]+(\.[0-9]+)?       { yylval.fval = atof(yytext); return NUM; }
 [a-z]                   { yylval.cval = yytext[0]; return VAR; }
-SENAO                   { return SENAO; }
-SE                      { return SE; }
-[+]                     { return SOMA; }
+ELSE                    { return ELSE; }
+IF                      { return IF; }
+[+]                     { return SUM; }
 [-]                     { return SUB; }
 [*]                     { return MUL; }
 [/]                     { return DIV; }
 [=]                     { return ATB; }
-[>]                     { return MAIOR; }
-[<]                     { return MENOR; }
->=                      { return MAIORIGUAL; }
-<=                      { return MENORIGUAL; }
-==                      { return IGUAL; }
-!=                      { return DIF; }
-OU                      { return OU; }
-E                       { return E; }
-NAO                     { return NAO; }
-\(                      { return APARENT; }
-\)                      { return FPARENT; }
-\{                      { return ACHAVE; }
-\}                      { return FCHAVE; }
+[>]                     { return GREATER; }
+[<]                     { return LESS; }
+">="                    { return GEQUAL; }
+"<="                    { return LEQUAL; }
+"=="                    { return EQUAL; }
+"!="                    { return DIF; }
+"OR"                    { return OR; }
+"AND"                   { return AND; }
+"NOT"                   { return NOT; }
+"TRUE"                  { return TRUE; }
+"FALSE"                 { return FALSE; }
+"("                     { return OPARENT; }
+")"                     { return CPARENT; }
+"{"                     { return OBRACKET; }
+"}"                     { return CBRACKET; }
 "//".*[\n]              ;
 "/*".*"*/"              ;
 [.]                     ;
