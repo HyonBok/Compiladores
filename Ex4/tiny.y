@@ -21,10 +21,11 @@ float vars[26];
 %token OPARENT CPARENT OBRACKET CBRACKET 
 %token GREATER LESS GEQUAL LEQUAL EQUAL DIF OR AND NOT TRUE FALSE
 
-%right SUM SUB MUL DIV
+%type <ival> logic comand_if
+%type <fval> exp factor termo comand_atb 
 
-%type <ival> logic 
-%type <fval> exp comand_atb comand_if
+%left SUM SUB MUL DIV
+%left GREATER LESS GEQUAL LEQUAL EQUAL DIF OR AND NOT TRUE FALSE
 
 %%
 
@@ -33,12 +34,12 @@ float vars[26];
 calc:   
  | calc comand_atb;
  | calc VAR { printf("%c = %f\n", $2, vars[$2-'a']); }    // So pra saber o valor da variavel        
- | calc comand_if { printf("%f\n", $2); }                 // Retorna valor atribuido no if
+ | calc comand_if { printf("%d\n", $2); }                 // Retorna valor atribuido no if
  ;
 
 comand_if: 
-   IF logic OBRACKET comand_atb CBRACKET { if($2 != 0) { $$ = $4; } }
- | IF logic OBRACKET comand_atb CBRACKET ELSE OBRACKET comand_atb CBRACKET { if($2) { $$ = $4; } else { $$ = $8; } }
+   IF OPARENT logic CPARENT OBRACKET comand_atb CBRACKET { if($3 != 0) { $$ = $6; } }
+ | IF OPARENT logic CPARENT OBRACKET comand_atb CBRACKET ELSE OBRACKET comand_atb CBRACKET { if($3) { $$ = $6; } else { $$ = $10; } }
  ;
 
 comand_atb:
@@ -48,31 +49,39 @@ comand_atb:
 /* Comparacao */
 
 logic: 
-   OPARENT exp GREATER exp CPARENT  { if($2 > $4) { $$ = 1; } else { $$ = 0; } }
- | OPARENT exp GEQUAL exp CPARENT { if($2 >= $4) { $$ = 1; } else { $$ = 0; } }
- | OPARENT exp LESS exp CPARENT { if($2 < $4) { $$ = 1; } else { $$ = 0; } }
- | OPARENT exp LEQUAL exp CPARENT { if($2 <= $4) { $$ = 1; } else { $$ = 0; } }
- | OPARENT exp EQUAL exp CPARENT { if($2 == $4) { $$ = 1; } else { $$ = 0; } }
- | OPARENT exp DIF exp CPARENT { if($2 != $4) { $$ = 1; } else { $$ = 0; } }
- | OPARENT logic OR logic CPARENT { if($2 || $4) { $$ = 1; } else { $$ = 0; } }
- | OPARENT logic AND logic CPARENT { if($2 && $4) { $$ = 1; } else { $$ = 0; } }
- | OPARENT NOT logic CPARENT { if($3) { $$ = 0; } else { $$ = 1; } }
- | OPARENT TRUE CPARENT { $$ = 1; }
- | OPARENT FALSE CPARENT { $$ = 0; }
- | OPARENT exp CPARENT { if($2) { $$ = 1; } else { $$ = 0 } }
+   exp GREATER exp  { if($1 > $3) { $$ = 1; } else { $$ = 0; } }
+ | exp GEQUAL exp { if($1 >= $3) { $$ = 1; } else { $$ = 0; } }
+ | exp LESS exp { if($1 < $3) { $$ = 1; } else { $$ = 0; } }
+ | exp LEQUAL exp { if($1 <= $3) { $$ = 1; } else { $$ = 0; } }
+ | exp EQUAL exp { if($1 == $3) { $$ = 1; } else { $$ = 0; } }
+ | exp DIF exp { if($1 != $3) { $$ = 1; } else { $$ = 0; } }
+ | logic OR logic { if($1 || $3) { $$ = 1; } else { $$ = 0; } }
+ | logic AND logic { if($1 && $3) { $$ = 1; } else { $$ = 0; } }
+ | NOT OPARENT logic CPARENT { if($3) { $$ = 0; } else { $$ = 1; } }
+ | TRUE { $$ = 1; }
+ | FALSE { $$ = 0; }
+ | exp { if($1) { $$ = 1; } else { $$ = 0; } }
  ;
 
 /* Aritmetica */
 
 exp:
+   factor
+ | exp SUM exp { $$ = $1 + $3; }
+ | exp SUB exp { $$ = $1 - $3; }
+ ;
+
+factor:
+   termo
+ | factor MUL factor { $$ = $1 * $3; }
+ | factor DIV factor { $$ = $1 / $3; }
+ ;
+
+termo: 
    NUM
- | VAR                  { $$ = vars[$1 - 'a']; }
- | exp SUM exp          { $$ = $1 + $3; }
- | exp SUB exp          { $$ = $1 - $3; }
- | exp MUL exp          { $$ = $1 * $3; }
- | exp DIV exp          { $$ = $1 / $3; }
- | OPARENT exp CPARENT  { $$ = $2; }
-;
+ | VAR { $$ = vars[$1-'a']; } 
+ | OPARENT exp CPARENT { $$ = $2; }
+ ; 
 
 %%
 
