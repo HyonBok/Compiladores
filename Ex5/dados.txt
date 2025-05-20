@@ -1,0 +1,21 @@
+BOOL a0;
+a0 = TRUE;
+INT a1;
+a1 = 5;
+FLOAT a2;
+a2 = 7.5;
+
+IF(a0 == 1){
+    a1 = 3; 
+}
+
+IF(a0 == 1){
+    a0 = FALSE;
+}
+ELSE{
+    a0 = 1;
+}
+
+FLOAT a3;
+a3 = a1 + a2;
+WRITE(a3);
