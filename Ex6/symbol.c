@@ -2,9 +2,12 @@
 
 // Definições das tabelas globais
 Symbol *symbolTable[TABLE_SIZE] = {0};
+Temp *tempTable[TABLE_SIZE] = {0};
 IntValue *intTable[TABLE_SIZE] = {0};
 FloatValue *floatTable[TABLE_SIZE] = {0};
 BoolValue *boolTable[TABLE_SIZE] = {0};
+
+int global_index = 0;
 
 // Função de hash simples
 unsigned int hash(const char *str) {
@@ -42,9 +45,44 @@ void add_symbol(const char *name, VarType type) {
 
     newSymbol->name = strdup(name);
     newSymbol->type = type;
+    newSymbol->temp_index = add_temp();
     newSymbol->next = symbolTable[index];
     symbolTable[index] = newSymbol;
 }
+
+Temp *add_temp(int value) {
+    Temp *temp = malloc(sizeof(Temp));
+    if (!temp) {
+      perror("malloc failed");
+      exit(EXIT_FAILURE);
+    }
+    temp->index = global_index++;
+    temp->value = value;
+    if (!temp->symbol_name) {
+      perror("strdup failed");
+      exit(EXIT_FAILURE);
+    }
+
+    return temp;
+}
+
+Temp *get_temp(char *name) {
+    unsigned int index = hash(name);
+    Symbol *symbol = symbolTable[index];
+    while (symbol) {
+        if (symbol->name == name) {
+            if(symbol->temp_index == -1) {
+                fprintf(stderr, "Erro: Variável temporária do simbolo %s não encontrada!\n", name);
+                exit(EXIT_FAILURE);
+            }
+            return symbol->temp;
+        }
+        symbol = symbol->next;
+    }
+    fprintf(stderr, "Erro: Variável temporária do simbolo %s não encontrada!\n", name);
+    exit(EXIT_FAILURE);
+}
+
 
 // Adiciona valor inteiro
 void set_int_value(const char *name, int value) {

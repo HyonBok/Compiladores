@@ -15,8 +15,15 @@ typedef enum {
     BOOL_VAR
 } VarType;
 
+typedef struct Temp {
+    int index;
+    float value;
+    struct Temp *next;
+} Temp;
+
 typedef struct Symbol {
     char *name;
+    int temp_index;
     VarType type;
     struct Symbol *next;
 } Symbol;

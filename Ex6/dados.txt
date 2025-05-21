@@ -1,21 +1,17 @@
-BOOL a0;
-a0 = TRUE;
-INT a1;
-a1 = 5;
-FLOAT a2;
-a2 = 7.5;
+INT a0 = 1;
+INT a1 = 2;
+INT a2 = 3;
+INT a3 = 0;
 
-IF(a0 == 1){
-    a1 = 3; 
-}
+a2 = a1 + a0;
+a3 = a2 + a0;
 
-IF(a0 == 1){
-    a0 = FALSE;
-}
-ELSE{
-    a0 = 1;
-}
 
-FLOAT a3;
-a3 = a1 + a2;
-WRITE(a3);
+/*
+equivalente:
+
+t2 = t1 + t0
+t3 = t2 + t0
+
+
+*/
