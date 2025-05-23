@@ -64,6 +64,7 @@ unsigned int hash(const char *str);
 void add_symbol(const char *name, VarType type, int tempIndex);
 Temp *add_temp(int value, int dropIndex);
 Temp *get_temp_from_symbol(char *name);
+Campo *add_campo(int inicio, int tamanho);
 void set_int_value(const char *name, int value);
 void set_float_value(const char *name, float value);
 void set_bool_value(const char *name, int value);

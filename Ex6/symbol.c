@@ -8,6 +8,15 @@ FloatValue *floatTable[TABLE_SIZE] = {0};
 BoolValue *boolTable[TABLE_SIZE] = {0};
 
 int global_index = 1;
+int global_line = 1;
+
+void add_line() {
+    global_line++;
+}
+
+int get_line() {
+    return global_line;
+}
 
 // Função de hash simples
 unsigned int hash(const char *str) {
@@ -75,6 +84,17 @@ Temp *get_temp_from_symbol(char *name) {
     }
     fprintf(stderr, "Erro: Variável temporária do simbolo %s não encontrada!\n", name);
     exit(EXIT_FAILURE);
+}
+
+Campo *add_campo(int inicio, int tamanho) {
+    Campo *campo = malloc(sizeof(Campo));
+    if (!campo) {
+      perror("malloc failed");
+      exit(EXIT_FAILURE);
+    }
+    campo->inicio = inicio;
+    campo->tamanho = tamanho;
+    return campo;
 }
 
 // Recupera tipo da variável
