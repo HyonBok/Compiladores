@@ -7,6 +7,12 @@
   void yyerror (char const *);
 
   char textoFinal[1000];
+  char textoAuxiliar[100];
+
+  int get_tamanho(int value){
+	sprintf(textoAuxiliar, "%d", value);
+	return strlen(textoAuxiliar);
+  }
 %}
 
 %union {
@@ -63,7 +69,12 @@ declaracoes:
 ;
 
 declaracao:
-	INT ID END { add_symbol($2, INT_VAR, -1); }
+	INT ID END { 
+		add_symbol($2, INT_VAR, -1);
+		Temp* t = get_temp_from_symbol($2);
+		t->unique = 0;
+		add_line(); 
+	}
 	| INT ID ATB exp END { 
 		add_symbol($2, INT_VAR, $4->index);
 		Temp* t = get_temp_from_symbol($2);
@@ -76,6 +87,7 @@ declaracao:
 		else{
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d\n", t->index, $4->index); 
 		}
+		add_line();
 	}
 ;
 
@@ -92,14 +104,36 @@ comando:
 
 comando_if:
 	IF OP expr_logica CP OB atrib CB ELSE OB atrib CB { 
+		int origem = $3->inicio;
+		int destino = origem + 3;
+		memmove(&textoFinal[destino], &textoFinal[origem], 1000);
+		memcpy(textoFinal + origem, "if ", 3);
 		
+		int casoSe = get_line();
+		snprintf(textoAuxiliar, sizeof(textoAuxiliar), "goto %d\ngoto %d\n", casoSe, casoSe + 1);
+		int tamanhoGoto = strlen(textoAuxiliar);
+		origem += $3->tamanho;
+		destino = origem + tamanhoGoto;
+		int bytes_a_mover = strlen(&textoFinal[origem]) + 1; 
+		memmove(&textoFinal[destino], &textoFinal[origem], bytes_a_mover);
+		memcpy(textoFinal + origem + 2, textoAuxiliar, tamanhoGoto);
+		add_line();
 	} 
 	| IF OP expr_logica CP OB atrib CB { 
-		//printf("if %d goto %d\n", get_line());
-		int lenTextoFinal = strlen(textoFinal);
-		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		memmove(&textoFinal[$3 + 3], &textoFinal[$3], strlen(&textoFinal[$3]) + 1);
-		memcpy(textoFinal + $3, "if ", 3);
+		int origem = $3->inicio;
+		int destino = origem + 3;
+		memmove(&textoFinal[destino], &textoFinal[origem], 1000);
+		memcpy(textoFinal + origem, "if ", 3);
+		
+		int casoSe = get_line();
+		snprintf(textoAuxiliar, sizeof(textoAuxiliar), "goto %d\ngoto %d\n", casoSe, casoSe + 1);
+		int tamanhoGoto = strlen(textoAuxiliar);
+		origem += $3->tamanho;
+		destino = origem + tamanhoGoto;
+		int bytes_a_mover = strlen(&textoFinal[origem]) + 1; 
+		memmove(&textoFinal[destino], &textoFinal[origem], bytes_a_mover);
+		memcpy(textoFinal + origem + 2, textoAuxiliar, tamanhoGoto);
+		add_line();
 	}
 ;
 
@@ -122,7 +156,7 @@ atrib:
 				else{
 					snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d\n", t->index, $3->value);
 				}
-				
+				add_line();
 				break;
 			default:
 				// variable not found
@@ -149,7 +183,7 @@ exp:
 			else{
 				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d + t%d\n", $$->index, $1->index, $3->index);
 			}
-
+			add_line();
 		}
     | exp SUB exp { 
 			int lenTextoFinal = strlen(textoFinal);
@@ -167,7 +201,7 @@ exp:
 			else{
 				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d - t%d\n", $$->index, $1->index, $3->index);
 			}
-
+			add_line();
 		}
 ;
 
@@ -189,7 +223,7 @@ termo:
 			else{
 				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d * t%d\n", $$->index, $1->index, $3->index);
 			}
-
+			add_line();
 		}
     | termo DIV termo { 
 			int lenTextoFinal = strlen(textoFinal);
@@ -207,7 +241,7 @@ termo:
 			else{
 				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d / t%d\n", $$->index, $1->index, $3->index);
 			}
-
+			add_line();
 		}
 
 fator:
@@ -223,104 +257,220 @@ expr_logica:
 	| NOT expr_logica { $$ = !$2; }
   	|*/ exp EQUAL exp { 
 		int lenTextoFinal = strlen(textoFinal);
-		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		int tamanho = 6;
+		
 		if($1->unique == 1 && $3->unique == 1){
+			
+			tamanho += get_tamanho($1->value);
+			tamanho += get_tamanho($3->value);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "%d == %d ", $1->value, $3->value); 
 		}
 		else if($1->unique == 0 && $3->unique == 1){
+			
+			tamanho += get_tamanho($1->index) + 1;
+			tamanho += get_tamanho($3->value);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d == %d ", $1->index, $3->value); 
 		}
 		else if($1->unique == 1 && $3->unique == 0){
+			
+			tamanho += get_tamanho($1->value);
+			tamanho += get_tamanho($3->index) + 1;
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "%d == t%d ", $1->value, $3->index); 
 		}
 		else{
+			
+			tamanho += get_tamanho($1->index) + 1;
+			tamanho += get_tamanho($3->index) + 1;
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d == t%d ", $1->index, $3->index); 
 		}
+
+		$$ = add_campo(lenTextoFinal, tamanho);
+		
+		add_line();
 	}
 	| exp LEQUAL exp { 
 		int lenTextoFinal = strlen(textoFinal);
-		$$ = lenTextoFinal;
-		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		int tamanho = 6;
+
 		if($1->unique == 1 && $3->unique == 1){
+			
+			tamanho += get_tamanho($1->value);
+			tamanho += get_tamanho($3->value);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "%d <= %d ", $1->value, $3->value); 
 		}
 		else if($1->unique == 0 && $3->unique == 1){
+			
+			tamanho += get_tamanho($1->index) + 1;
+			tamanho += get_tamanho($3->value);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d <= %d ", $1->index, $3->value); 
 		}
 		else if($1->unique == 1 && $3->unique == 0){
+			
+			tamanho += get_tamanho($1->value);
+			tamanho += get_tamanho($3->index) + 1;
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "%d <= t%d ", $1->value, $3->index); 
 		}
 		else{
+			
+			tamanho += get_tamanho($1->index) + 1;
+			tamanho += get_tamanho($3->index) + 1;
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d <= t%d ", $1->index, $3->index); 
 		}
+
+		$$ = add_campo(lenTextoFinal, tamanho);
+		add_line();
 	 }
 	| exp GEQUAL exp { 
 		int lenTextoFinal = strlen(textoFinal);
-		$$ = lenTextoFinal;
-		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		int tamanho = 6;
+		
 		if($1->unique == 1 && $3->unique == 1){
+			
+			tamanho += get_tamanho($1->value);
+			tamanho += get_tamanho($3->value);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "%d >= %d ", $1->value, $3->value); 
 		}
 		else if($1->unique == 0 && $3->unique == 1){
+			
+			tamanho += get_tamanho($1->index) + 1;
+			tamanho += get_tamanho($3->value);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d >= %d ", $1->index, $3->value); 
 		}
 		else if($1->unique == 1 && $3->unique == 0){
+			
+			tamanho += get_tamanho($1->value);
+			tamanho += get_tamanho($3->index) + 1;
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "%d >= t%d ", $1->value, $3->index); 
 		}
 		else{
+			
+			tamanho += get_tamanho($1->index) + 1;
+			tamanho += get_tamanho($3->index) + 1;
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d >= t%d ", $1->index, $3->index); 
 		}
+
+		$$ = add_campo(lenTextoFinal, tamanho);
+		add_line();
 	 }
 	| exp DIF exp { 
 		int lenTextoFinal = strlen(textoFinal);
-		$$ = lenTextoFinal;
-		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		int tamanho = 6;
+
 		if($1->unique == 1 && $3->unique == 1){
+			
+			tamanho += get_tamanho($1->value);
+			tamanho += get_tamanho($3->value);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "%d != %d ", $1->value, $3->value); 
 		}
 		else if($1->unique == 0 && $3->unique == 1){
+			
+			tamanho += get_tamanho($1->index) + 1;
+			tamanho += get_tamanho($3->value);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d != %d ", $1->index, $3->value); 
 		}
 		else if($1->unique == 1 && $3->unique == 0){
+			
+			tamanho += get_tamanho($1->value);
+			tamanho += get_tamanho($3->index) + 1;
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "%d != t%d ", $1->value, $3->index); 
 		}
 		else{
+			
+			tamanho += get_tamanho($1->index) + 1;
+			tamanho += get_tamanho($3->index) + 1;
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d != t%d ", $1->index, $3->index); 
 		}
+
+		$$ = add_campo(lenTextoFinal, tamanho);
+		add_line();
 	 }
 	| exp LESS exp { 
 		int lenTextoFinal = strlen(textoFinal);
-		$$ = lenTextoFinal;
-		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		int tamanho = 6;
+
 		if($1->unique == 1 && $3->unique == 1){
+			
+			tamanho += get_tamanho($1->value);
+			tamanho += get_tamanho($3->value);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "%d < %d\n", $1->value, $3->value); 
 		}
 		else if($1->unique == 0 && $3->unique == 1){
+			
+			tamanho += get_tamanho($1->index) + 1;
+			tamanho += get_tamanho($3->value);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d < %d\n", $1->index, $3->value); 
 		}
 		else if($1->unique == 1 && $3->unique == 0){
+			
+			tamanho += get_tamanho($1->value);
+			tamanho += get_tamanho($3->index) + 1;
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "%d < t%d\n", $1->value, $3->index); 
 		}
 		else{
+			
+			tamanho += get_tamanho($1->index) + 1;
+			tamanho += get_tamanho($3->index) + 1;
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d < t%d\n", $1->index, $3->index); 
 		}
+
+		$$ = add_campo(lenTextoFinal, tamanho);
+		add_line();
 	 }
 	| exp GREATER exp { 
 		int lenTextoFinal = strlen(textoFinal);
-		$$ = lenTextoFinal;
-		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		int tamanho = 6;
+		
 		if($1->unique == 1 && $3->unique == 1){
+			
+			tamanho += get_tamanho($1->value);
+			tamanho += get_tamanho($3->value);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "%d > %d\n", $1->value, $3->value); 
 		}
 		else if($1->unique == 0 && $3->unique == 1){
+			
+			tamanho += get_tamanho($1->index) + 1;
+			tamanho += get_tamanho($3->value);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d > %d\n", $1->index, $3->value); 
 		}
 		else if($1->unique == 1 && $3->unique == 0){
+			
+			tamanho += get_tamanho($1->value);
+			tamanho += get_tamanho($3->index) + 1;
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "%d > t%d\n", $1->value, $3->index); 
 		}
 		else{
+			
+			tamanho += get_tamanho($1->index) + 1;
+			tamanho += get_tamanho($3->index) + 1;
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d > t%d\n", $1->index, $3->index); 
 		}
+
+		$$ = add_campo(lenTextoFinal, tamanho);
+		add_line();
 	 }
 	 /*
 	| expr_logica OR expr_logica { 
