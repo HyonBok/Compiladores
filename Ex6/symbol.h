@@ -17,14 +17,19 @@ typedef enum {
 
 typedef struct Temp {
     int index;
-    float value;
-    struct Temp *next;
+    int value;
+    int unique;
 } Temp;
+
+typedef struct Campo {
+    int inicio;
+    int tamanho;
+} Campo;
 
 typedef struct Symbol {
     char *name;
-    int temp_index;
     VarType type;
+    int tempIndex;
     struct Symbol *next;
 } Symbol;
 
@@ -53,8 +58,12 @@ extern FloatValue *floatTable[TABLE_SIZE];
 extern BoolValue *boolTable[TABLE_SIZE];
 
 // Funções utilitárias
+void add_line();
+int get_line();
 unsigned int hash(const char *str);
-void add_symbol(const char *name, VarType type);
+void add_symbol(const char *name, VarType type, int tempIndex);
+Temp *add_temp(int value, int dropIndex);
+Temp *get_temp_from_symbol(char *name);
 void set_int_value(const char *name, int value);
 void set_float_value(const char *name, float value);
 void set_bool_value(const char *name, int value);

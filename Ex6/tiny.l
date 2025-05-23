@@ -15,11 +15,8 @@
 
 "/*".*"*/"                                  ;
 "//".*[\n]                                  ;
-[+-]?[0-9]+\.[0-9]+                         { /* printf("NUMF "); */ yylval.fval = atof(yytext); return NUM; }
 [+-]?[0-9]+                                 { /* printf("NUMI "); */ yylval.fval = atof(yytext); return NUM; }
 INT                                         { /* printf("INT "); */ return INT; }
-FLOAT                                       { /* printf("FLOAT "); */ return FLOAT; }
-BOOL                                        { /* printf("BOOL "); */ return BOOL; }
 WRITE                                       { /* printf("WRITE "); */ return WRITE; }
 ELSE                                        { /* printf("ELSE "); */ return ELSE; }
 IF                                          { /* printf("IF "); */ return IF; }
@@ -34,11 +31,6 @@ IF                                          { /* printf("IF "); */ return IF; }
 "<="                                        { /* printf("LEQUAL "); */ return LEQUAL; }
 "=="                                        { /* printf("EQUAL "); */ return EQUAL; }
 "!="                                        { /* printf("DIF "); */ return DIF; }
-OR                                          { /* printf("OR "); */ return OR; }
-AND                                         { /* printf("AND "); */ return AND; }
-NOT                                         { /* printf("NOT "); */ return NOT; }
-TRUE                                        { /* printf("BTRUE "); */ return BTRUE; }
-FALSE                                       { /* printf("BFALSE "); */ return BFALSE; }
 "("                                         { /* printf("OP "); */ return OP; }
 ")"                                         { /* printf("CP "); */ return CP; }
 "{"                                         { /* printf("OB\n "); */ return OB; }

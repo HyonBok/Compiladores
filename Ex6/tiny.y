@@ -5,7 +5,8 @@
   extern FILE *yyin; 
   int yylex (void);
   void yyerror (char const *);
-  
+
+  char textoFinal[1000];
 %}
 
 %union {
@@ -14,36 +15,36 @@
     char cval;
 	char* string;
 	Temp* temp;
+	Campo* campo;
 }
 
 %token <fval> NUM
 %token SUM SUB MULT DIV ATB
 %token IF ELSE 
-%token EQUAL LESS GREATER LEQUAL DIF GEQUAL AND OR NOT 
+%token EQUAL LESS GREATER LEQUAL DIF GEQUAL /*AND OR NOT */
 %token OB CB OP CP
-%token BTRUE BFALSE
-%token INT FLOAT BOOL /* READ */ WRITE 
+//%token BTRUE BFALSE
+%token INT WRITE
 %token END
 %token <string> ID
-%type <fval> comando_if /* comando_read */ atrib 
+%type <campo> expr_logica 
 %type <temp> termo fator exp
-%type <ival> expr_logica
 
 
 %left SUM SUB
 %left MULT DIV
 %right ATB
 %left EQUAL LESS GREATER LEQUAL GEQUAL DIF
-%left AND OR
-%right NOT
+//%left AND OR
+//%right NOT
 
 %start programa
 
 %%
 
 programa:
-    bloco
-	| blocos bloco
+    bloco { printf("%s\n", textoFinal); }
+	| blocos bloco { printf("%s\n", textoFinal); }
 ;
 
 blocos:
@@ -62,12 +63,20 @@ declaracoes:
 ;
 
 declaracao:
-	INT ID END { add_symbol($2, INT_VAR); }
-	| INT ID ATB exp END { add_symbol($2, INT_VAR); set_int_value($2, $4.value); printf("t%f = %f", $4.index, $4.value); }
-	| FLOAT ID END { add_symbol($2, FLOAT_VAR); }
-	| FLOAT ID ATB exp END { add_symbol($2, FLOAT_VAR); set_float_value($2, $4.value); }
-	| BOOL ID END { add_symbol($2, BOOL_VAR); }
-	| BOOL ID ATB expr_logica END { add_symbol($2, BOOL_VAR); set_bool_value($2, $4.value); }
+	INT ID END { add_symbol($2, INT_VAR, -1); }
+	| INT ID ATB exp END { 
+		add_symbol($2, INT_VAR, $4->index);
+		Temp* t = get_temp_from_symbol($2);
+		int lenTextoFinal = strlen(textoFinal);
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		if($4->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d\n", t->index, $4->value);
+			$4->unique = 0;
+		}
+		else{
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d\n", t->index, $4->index); 
+		}
+	}
 ;
 
 comandos:
@@ -78,53 +87,25 @@ comandos:
 comando:
 	comando_if
 	| atrib 
-	// | comando_read END
 	| comando_write END
 ;
 
 comando_if:
-	IF OP expr_logica CP
-	OB atrib CB
-	ELSE OB atrib CB { if ($3) { $$ = $6; } else { $$ = $10; } } 
-	| IF OP expr_logica CP
-	OB atrib CB { if ($3) { $$ = $6; } }
-;
-
-/*
-comando_read:
-	READ OP ID CP { 
-		switch (get_variable_type($3)) {
-			case INT_VAR: 
-				int auxInt;
-				printf("Digite int: ");
-				scanf("%d", &auxInt);
-				while (getchar() != '\n');
-				set_int_value($3, auxInt);
-			break;
-			case FLOAT_VAR: 
-				float auxFloat;
-				printf("Digite float: ");
-				scanf("%f", &auxFloat);
-				while (getchar() != '\n');
-				set_float_value($3, auxFloat);
-			break;
-			case BOOL_VAR: 
-				int auxBool;
-				printf("Digite booleano: ");
-				scanf("%d", &auxBool);
-				while (getchar() != '\n');
-				set_bool_value($3, auxBool);
-			break;
-			default:
-				break;
-		}
+	IF OP expr_logica CP OB atrib CB ELSE OB atrib CB { 
+		
+	} 
+	| IF OP expr_logica CP OB atrib CB { 
+		//printf("if %d goto %d\n", get_line());
+		int lenTextoFinal = strlen(textoFinal);
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		memmove(&textoFinal[$3 + 3], &textoFinal[$3], strlen(&textoFinal[$3]) + 1);
+		memcpy(textoFinal + $3, "if ", 3);
 	}
 ;
-*/
 
 comando_write:
 	WRITE OP exp CP { 
-		printf("%f\n", $3.value); 
+		//printf("%d\n", $3->value); 
 	}
 ;
 
@@ -132,56 +113,245 @@ atrib:
 	ID ATB exp END { 
 		switch (get_variable_type($1)) {
 			case INT_VAR: 
-				set_int_value($1, $3.value);
-			break;
-			case FLOAT_VAR: 
-				set_float_value($1, $3.value);
-			break;
-			break;
+				Temp* t = get_temp_from_symbol($1);
+				int lenTextoFinal = strlen(textoFinal);
+				int espaco = sizeof(textoFinal) - lenTextoFinal;
+				if($3->unique == 1){
+					snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d\n", t->index, $3->value);
+				}
+				else{
+					snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d\n", t->index, $3->value);
+				}
+				
+				break;
 			default:
 				// variable not found
 				break;
-		} }
-	| ID ATB expr_logica END {
-		switch (get_variable_type($1)) {
-			case BOOL_VAR: 
-				set_bool_value($1, $3.value);
-			break;
-			default:
-				// variable not found
-				break;
-		} }
+			} 
+		}
 ;
 
 exp:
     termo
-    | exp SUM exp { /* $$ = $1 + $3; */ $$ = add_temp($1.value + $3.value); printf("t%f = %f + %f\n", $$.index, $1.value, $3.value); }
-    | exp SUB exp { /* $$ = $1 - $3; */ $$ = add_temp($1.value - $3.value); printf("t%f = %f - %f\n", $$.index, $1.value, $3.value); }
+    | exp SUM exp { 
+			int lenTextoFinal = strlen(textoFinal);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
+			$$ = add_temp($1->value + $3->value, 0); 
+			if($1->unique == 1 && $3->unique == 1){
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d + %d\n", $$->index, $1->value, $3->value);
+			}
+			else if($1->unique == 0 && $3->unique == 1){
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d + %d\n", $$->index, $1->index, $3->value);
+			}
+			else if($1->unique == 1 && $3->unique == 0){
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d + t%d\n", $$->index, $1->value, $3->index);
+			}
+			else{
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d + t%d\n", $$->index, $1->index, $3->index);
+			}
+
+		}
+    | exp SUB exp { 
+			int lenTextoFinal = strlen(textoFinal);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
+			$$ = add_temp($1->value - $3->value, 0); 
+			if($1->unique == 1 && $3->unique == 1){
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d - %d\n", $$->index, $1->value, $3->value);
+			}
+			else if($1->unique == 0 && $3->unique == 1){
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d - %d\n", $$->index, $1->index, $3->value);
+			}
+			else if($1->unique == 1 && $3->unique == 0){
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d - t%d\n", $$->index, $1->value, $3->index);
+			}
+			else{
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d - t%d\n", $$->index, $1->index, $3->index);
+			}
+
+		}
 ;
 
 termo:
     fator
-    | termo MULT termo { /* $$ = $1 * $3; */ $$ = add_temp($1.value * $3.value); printf("t%f = %f * %f\n", $$.index, $1.value, $3.value); }
-    | termo DIV termo { /* $$ = $1 / $3; */ $$ = add_temp($1.value / $3.value); printf("t%f = %f / %f\n", $$.index, $1.value, $3.value); }
+    | termo MULT termo { 
+			int lenTextoFinal = strlen(textoFinal);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
+			$$ = add_temp($1->value * $3->value, 0); 
+			if($1->unique == 1 && $3->unique == 1){
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d * %d\n", $$->index, $1->value, $3->value); 
+			}
+			else if($1->unique == 0 && $3->unique == 1){
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d * %d\n", $$->index, $1->index, $3->value);
+			}
+			else if($1->unique == 1 && $3->unique == 0){
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d * t%d\n", $$->index, $1->value, $3->index);
+			}
+			else{
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d * t%d\n", $$->index, $1->index, $3->index);
+			}
+
+		}
+    | termo DIV termo { 
+			int lenTextoFinal = strlen(textoFinal);
+			int espaco = sizeof(textoFinal) - lenTextoFinal;
+			$$ = add_temp($1->value / $3->value, 0); 
+			if($1->unique == 1 && $3->unique == 1){
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d / %d\n", $$->index, $1->value, $3->value); 
+			}
+			else if($1->unique == 0 && $3->unique == 1){
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d / %d\n", $$->index, $1->index, $3->value);
+			}
+			else if($1->unique == 1 && $3->unique == 0){
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d / t%d\n", $$->index, $1->value, $3->index);
+			}
+			else{
+				snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d / t%d\n", $$->index, $1->index, $3->index);
+			}
+
+		}
 
 fator:
-    NUM { $$ = add_temp($1); }
-	| ID { $$ = get_temp($1); }
+    NUM { $$ = add_temp($1, 1); }
+	| ID { $$ = get_temp_from_symbol($1); }
     | OP exp CP { $$ = $2; }
 ;
 
 expr_logica:
+/*
 	BTRUE { $$ = 1; }
 	| BFALSE { $$ = 0; }
 	| NOT expr_logica { $$ = !$2; }
-  	| exp EQUAL exp { $$ = $1.value == $3.value; }
-	| exp LEQUAL exp { $$ = $1.value <= $3.value; }
-	| exp GEQUAL exp { $$ = $1.value >= $3.value; }
-	| exp DIF exp { $$ = $1.value != $3.value; }
-	| exp LESS exp { $$ = $1.value < $3.value; }
-	| exp GREATER exp { $$ = $1.value > $3.value; }
-	| exp OR exp { $$ = $1.value || $3.value; }
-	| exp AND exp { $$ = $1.value && $3.value; }
+  	|*/ exp EQUAL exp { 
+		int lenTextoFinal = strlen(textoFinal);
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		if($1->unique == 1 && $3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "%d == %d ", $1->value, $3->value); 
+		}
+		else if($1->unique == 0 && $3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d == %d ", $1->index, $3->value); 
+		}
+		else if($1->unique == 1 && $3->unique == 0){
+			snprintf(textoFinal + lenTextoFinal, espaco, "%d == t%d ", $1->value, $3->index); 
+		}
+		else{
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d == t%d ", $1->index, $3->index); 
+		}
+	}
+	| exp LEQUAL exp { 
+		int lenTextoFinal = strlen(textoFinal);
+		$$ = lenTextoFinal;
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		if($1->unique == 1 && $3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "%d <= %d ", $1->value, $3->value); 
+		}
+		else if($1->unique == 0 && $3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d <= %d ", $1->index, $3->value); 
+		}
+		else if($1->unique == 1 && $3->unique == 0){
+			snprintf(textoFinal + lenTextoFinal, espaco, "%d <= t%d ", $1->value, $3->index); 
+		}
+		else{
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d <= t%d ", $1->index, $3->index); 
+		}
+	 }
+	| exp GEQUAL exp { 
+		int lenTextoFinal = strlen(textoFinal);
+		$$ = lenTextoFinal;
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		if($1->unique == 1 && $3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "%d >= %d ", $1->value, $3->value); 
+		}
+		else if($1->unique == 0 && $3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d >= %d ", $1->index, $3->value); 
+		}
+		else if($1->unique == 1 && $3->unique == 0){
+			snprintf(textoFinal + lenTextoFinal, espaco, "%d >= t%d ", $1->value, $3->index); 
+		}
+		else{
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d >= t%d ", $1->index, $3->index); 
+		}
+	 }
+	| exp DIF exp { 
+		int lenTextoFinal = strlen(textoFinal);
+		$$ = lenTextoFinal;
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		if($1->unique == 1 && $3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "%d != %d ", $1->value, $3->value); 
+		}
+		else if($1->unique == 0 && $3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d != %d ", $1->index, $3->value); 
+		}
+		else if($1->unique == 1 && $3->unique == 0){
+			snprintf(textoFinal + lenTextoFinal, espaco, "%d != t%d ", $1->value, $3->index); 
+		}
+		else{
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d != t%d ", $1->index, $3->index); 
+		}
+	 }
+	| exp LESS exp { 
+		int lenTextoFinal = strlen(textoFinal);
+		$$ = lenTextoFinal;
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		if($1->unique == 1 && $3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "%d < %d\n", $1->value, $3->value); 
+		}
+		else if($1->unique == 0 && $3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d < %d\n", $1->index, $3->value); 
+		}
+		else if($1->unique == 1 && $3->unique == 0){
+			snprintf(textoFinal + lenTextoFinal, espaco, "%d < t%d\n", $1->value, $3->index); 
+		}
+		else{
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d < t%d\n", $1->index, $3->index); 
+		}
+	 }
+	| exp GREATER exp { 
+		int lenTextoFinal = strlen(textoFinal);
+		$$ = lenTextoFinal;
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		if($1->unique == 1 && $3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "%d > %d\n", $1->value, $3->value); 
+		}
+		else if($1->unique == 0 && $3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d > %d\n", $1->index, $3->value); 
+		}
+		else if($1->unique == 1 && $3->unique == 0){
+			snprintf(textoFinal + lenTextoFinal, espaco, "%d > t%d\n", $1->value, $3->index); 
+		}
+		else{
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d > t%d\n", $1->index, $3->index); 
+		}
+	 }
+	 /*
+	| expr_logica OR expr_logica { 
+		if($1->unique == 1 && $3->unique == 1){
+			printf("%d || %d ", $1->value, $3->value); 
+		}
+		else if($1->unique == 0 && $3->unique == 1){
+			printf("t%d || %d ", $1->index, $3->value); 
+		}
+		else if($1->unique == 1 && $3->unique == 0){
+			printf("%d || t%d ", $1->value, $3->index); 
+		}
+		else{
+			printf("t%d || t%d ", $1->index, $3->index); 
+		}
+	 }
+	| expr_logica AND expr_logica { 
+		if($1->unique == 1 && $3->unique == 1){
+			printf("%d && %d ", $1->value, $3->value); 
+		}
+		else if($1->unique == 0 && $3->unique == 1){
+			printf("t%d && %d ", $1->index, $3->value); 
+		}
+		else if($1->unique == 1 && $3->unique == 0){
+			printf("%d && t%d ", $1->value, $3->index); 
+		}
+		else{
+			printf("t%d && t%d ", $1->index, $3->index); 
+		}
+	 }
+	 */
 ;
 
 /* End of grammar. */

@@ -11,7 +11,7 @@ lex.yy.c: tiny.l tiny.tab.h
 
 # Compilação final
 tiny: lex.yy.c tiny.tab.c tiny.tab.h symbol.c symbol.h
-	gcc -o tiny tiny.tab.c lex.yy.c symbol.c -Wall -Wextra -g
+	gcc -o tiny tiny.tab.c lex.yy.c symbol.c -Wall -Wextra
 
 # Limpeza dos arquivos gerados
 clean:
