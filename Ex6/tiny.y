@@ -73,6 +73,9 @@ declaracao:
 		add_symbol($2, INT_VAR, -1);
 		Temp* t = get_temp_from_symbol($2);
 		t->unique = 0;
+		int lenTextoFinal = strlen(textoFinal);
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		snprintf(textoFinal + lenTextoFinal, espaco, "t%d = 0\n", t->index);
 		add_line(); 
 	}
 	| INT ID ATB exp END { 
@@ -87,7 +90,6 @@ declaracao:
 		else{
 			snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d\n", t->index, $4->index); 
 		}
-		add_line();
 	}
 ;
 
@@ -103,30 +105,15 @@ comando:
 ;
 
 comando_if:
-	IF OP expr_logica CP OB atrib CB ELSE OB atrib CB { 
+	IF OP expr_logica CP OB atrib CB { 
 		int origem = $3->inicio;
 		int destino = origem + 3;
 		memmove(&textoFinal[destino], &textoFinal[origem], 1000);
 		memcpy(textoFinal + origem, "if ", 3);
 		
-		int casoSe = get_line();
-		snprintf(textoAuxiliar, sizeof(textoAuxiliar), "goto %d\ngoto %d\n", casoSe, casoSe + 1);
-		int tamanhoGoto = strlen(textoAuxiliar);
-		origem += $3->tamanho;
-		destino = origem + tamanhoGoto;
-		int bytes_a_mover = strlen(&textoFinal[origem]) + 1; 
-		memmove(&textoFinal[destino], &textoFinal[origem], bytes_a_mover);
-		memcpy(textoFinal + origem + 2, textoAuxiliar, tamanhoGoto);
-		add_line();
-	} 
-	| IF OP expr_logica CP OB atrib CB { 
-		int origem = $3->inicio;
-		int destino = origem + 3;
-		memmove(&textoFinal[destino], &textoFinal[origem], 1000);
-		memcpy(textoFinal + origem, "if ", 3);
-		
-		int casoSe = get_line();
-		snprintf(textoAuxiliar, sizeof(textoAuxiliar), "goto %d\ngoto %d\n", casoSe, casoSe + 1);
+		int casoSe = $3->linha + 4;
+		int casoSenao = get_line() + 3;
+		snprintf(textoAuxiliar, sizeof(textoAuxiliar), "goto %d\ngoto %d\n", casoSe, casoSenao);
 		int tamanhoGoto = strlen(textoAuxiliar);
 		origem += $3->tamanho;
 		destino = origem + tamanhoGoto;
@@ -145,24 +132,17 @@ comando_write:
 
 atrib:
 	ID ATB exp END { 
-		switch (get_variable_type($1)) {
-			case INT_VAR: 
-				Temp* t = get_temp_from_symbol($1);
-				int lenTextoFinal = strlen(textoFinal);
-				int espaco = sizeof(textoFinal) - lenTextoFinal;
-				if($3->unique == 1){
-					snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d\n", t->index, $3->value);
-				}
-				else{
-					snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d\n", t->index, $3->value);
-				}
-				add_line();
-				break;
-			default:
-				// variable not found
-				break;
-			} 
+		Temp* t = get_temp_from_symbol($1);
+		int lenTextoFinal = strlen(textoFinal);
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		if($3->unique == 1){
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d = %d\n", t->index, $3->value);
 		}
+		else{
+			snprintf(textoFinal + lenTextoFinal, espaco, "t%d = t%d\n", t->index, $3->index);
+		}
+		add_line();
+	}
 ;
 
 exp:

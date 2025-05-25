@@ -24,6 +24,7 @@ typedef struct Temp {
 typedef struct Campo {
     int inicio;
     int tamanho;
+    int linha;
 } Campo;
 
 typedef struct Symbol {
@@ -65,14 +66,5 @@ void add_symbol(const char *name, VarType type, int tempIndex);
 Temp *add_temp(int value, int dropIndex);
 Temp *get_temp_from_symbol(char *name);
 Campo *add_campo(int inicio, int tamanho);
-void set_int_value(const char *name, int value);
-void set_float_value(const char *name, float value);
-void set_bool_value(const char *name, int value);
-void print_symbols(void);
-void print_values(void);
-int get_int_value(const char *name);
-float get_float_value(const char *name);
-int get_bool_value(const char *name);
-VarType get_variable_type(const char *name);
 
 #endif // SYMBOL_H

@@ -54,9 +54,13 @@ void add_symbol(const char *name, VarType type, int tempIndex) {
 
     newSymbol->name = strdup(name);
     newSymbol->type = type;
-    newSymbol->tempIndex = tempIndex;
     newSymbol->next = symbolTable[index];
     symbolTable[index] = newSymbol;
+    newSymbol->tempIndex = tempIndex;
+    if(tempIndex == -1) {
+        newSymbol->tempIndex = global_index;
+        add_temp(0, 0);
+    }
 }
 
 // Adiciona temporário
@@ -94,32 +98,6 @@ Campo *add_campo(int inicio, int tamanho) {
     }
     campo->inicio = inicio;
     campo->tamanho = tamanho;
+    campo->linha = global_line;
     return campo;
-}
-
-// Recupera tipo da variável
-VarType get_variable_type(const char *name) {
-    unsigned int index = hash(name);
-    Symbol *symbol = symbolTable[index];
-    while (symbol) {
-        if (strcmp(symbol->name, name) == 0) {
-            return symbol->type;
-        }
-        symbol = symbol->next;
-    }
-    fprintf(stderr, "Erro: Variável '%s' não encontrada na tabela de símbolos!\n", name);
-    exit(EXIT_FAILURE);
-}
-
-// Impressão das tabelas
-void print_symbols(void) {
-    printf("Tabela de Símbolos:\n");
-    for (int i = 0; i < TABLE_SIZE; i++) {
-        Symbol *symbol = symbolTable[i];
-        while (symbol) {
-            printf("[%s - %d] -> ", symbol->name, symbol->type);
-            symbol = symbol->next;
-        }
-    }
-    printf("\n");
 }
