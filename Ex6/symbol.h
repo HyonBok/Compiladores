@@ -15,9 +15,22 @@ typedef enum {
     BOOL_VAR
 } VarType;
 
+typedef struct Temp {
+    int index;
+    int value;
+    int unique;
+} Temp;
+
+typedef struct Campo {
+    int inicio;
+    int tamanho;
+    int linha;
+} Campo;
+
 typedef struct Symbol {
     char *name;
     VarType type;
+    int tempIndex;
     struct Symbol *next;
 } Symbol;
 
@@ -46,16 +59,12 @@ extern FloatValue *floatTable[TABLE_SIZE];
 extern BoolValue *boolTable[TABLE_SIZE];
 
 // Funções utilitárias
+void add_line();
+int get_line();
 unsigned int hash(const char *str);
-void add_symbol(const char *name, VarType type);
-void set_int_value(const char *name, int value);
-void set_float_value(const char *name, float value);
-void set_bool_value(const char *name, int value);
-void print_symbols(void);
-void print_values(void);
-int get_int_value(const char *name);
-float get_float_value(const char *name);
-int get_bool_value(const char *name);
-VarType get_variable_type(const char *name);
+void add_symbol(const char *name, VarType type, int tempIndex);
+Temp *add_temp(int value, int dropIndex);
+Temp *get_temp_from_symbol(char *name);
+Campo *add_campo(int inicio, int tamanho);
 
 #endif // SYMBOL_H
