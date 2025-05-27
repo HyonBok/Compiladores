@@ -2,10 +2,6 @@
 
 // Definições das tabelas globais
 Symbol *symbolTable[TABLE_SIZE] = {0};
-Temp *tempTable[TABLE_SIZE] = {0};
-IntValue *intTable[TABLE_SIZE] = {0};
-FloatValue *floatTable[TABLE_SIZE] = {0};
-BoolValue *boolTable[TABLE_SIZE] = {0};
 
 int global_index = 1;
 int global_line = 1;
@@ -28,7 +24,7 @@ unsigned int hash(const char *str) {
 }
 
 // Adiciona símbolo
-void add_symbol(const char *name, VarType type, int tempIndex) {
+void add_symbol(const char *name, VarType type) {
     unsigned int index = hash(name);
     Symbol *symbol = symbolTable[index];
     while (symbol) {
@@ -46,21 +42,16 @@ void add_symbol(const char *name, VarType type, int tempIndex) {
       perror("malloc failed");
       exit(EXIT_FAILURE);
     }
+
     newSymbol->name = strdup(name);
     if (!newSymbol->name) {
       perror("strdup failed");
       exit(EXIT_FAILURE);
     }
 
-    newSymbol->name = strdup(name);
     newSymbol->type = type;
     newSymbol->next = symbolTable[index];
     symbolTable[index] = newSymbol;
-    newSymbol->tempIndex = tempIndex;
-    if(tempIndex == -1) {
-        newSymbol->tempIndex = global_index;
-        add_temp(0, 0);
-    }
 }
 
 // Adiciona temporário
@@ -70,24 +61,18 @@ Temp *add_temp(int value, int unique) {
       perror("malloc failed");
       exit(EXIT_FAILURE);
     }
-    // Necessário apenas para os uniques
-    temp->value = value;
-    temp->index = global_index;
+    
     temp->unique = unique;
-    tempTable[global_index] = temp;
+    temp->value = malloc(20 * sizeof(char));
+    if(unique) {
+        temp->value = strdup(value);
+    }
+    else{
+        snprintf(temp->value, 20, "t%d", global_index);
+    }
+
     global_index++;
     return temp;
-}
-
-// Recupera temporário a partir do símbolo
-Temp *get_temp_from_symbol(char *name) {
-    unsigned int index = hash(name);
-    Symbol *symbol = symbolTable[index];
-    if (symbol != NULL) {
-        return tempTable[symbol->tempIndex];
-    }
-    fprintf(stderr, "Erro: Variável temporária do simbolo %s não encontrada!\n", name);
-    exit(EXIT_FAILURE);
 }
 
 Campo *add_campo(int inicio, int tamanho) {

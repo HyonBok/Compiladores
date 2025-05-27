@@ -16,8 +16,7 @@ typedef enum {
 } VarType;
 
 typedef struct Temp {
-    int index;
-    int value;
+    char* value;
     int unique;
 } Temp;
 
@@ -34,37 +33,15 @@ typedef struct Symbol {
     struct Symbol *next;
 } Symbol;
 
-typedef struct IntValue {
-    char *name;
-    int value;
-    struct IntValue *next;
-} IntValue;
-
-typedef struct FloatValue {
-    char *name;
-    float value;
-    struct FloatValue *next;
-} FloatValue;
-
-typedef struct BoolValue {
-    char *name;
-    int value;
-    struct BoolValue *next;
-} BoolValue;
-
 // Tabelas globais - só devem ser **definidas** em um .c
 extern Symbol *symbolTable[TABLE_SIZE];
-extern IntValue *intTable[TABLE_SIZE];
-extern FloatValue *floatTable[TABLE_SIZE];
-extern BoolValue *boolTable[TABLE_SIZE];
 
 // Funções utilitárias
 void add_line();
 int get_line();
 unsigned int hash(const char *str);
-void add_symbol(const char *name, VarType type, int tempIndex);
-Temp *add_temp(int value, int dropIndex);
-Temp *get_temp_from_symbol(char *name);
+void add_symbol(const char *name, VarType type);
+Temp *add_temp(char *value, int dropIndex);
 Campo *add_campo(int inicio, int tamanho);
 
 #endif // SYMBOL_H
