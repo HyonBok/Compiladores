@@ -16,10 +16,11 @@
 "/*".*"*/"                                  ;
 "//".*[\n]                                  ;
 [+-]?[0-9]+                                 { /* printf("NUMI "); */ yylval.fval = atof(yytext); return NUM; }
-INT                                         { /* printf("INT "); */ return INT; }
-WRITE                                       { /* printf("WRITE "); */ return WRITE; }
-ELSE                                        { /* printf("ELSE "); */ return ELSE; }
-IF                                          { /* printf("IF "); */ return IF; }
+[Ii][Nn][Tt]                                { /* printf("INT "); */ return INT; }
+[Ii][Ff]                                    { /* printf("IF "); */ return IF; }
+[Ee][Ll][Ss][Ee]                            { /* printf("ELSE "); */ return ELSE; }
+[Tt][Rr][Uu][Ee]                            { /* printf("TRUE "); */ return BTRUE; }
+[Ff][Aa][Ll][Ss][Ee]                        { /* printf("FALSE "); */ return BFALSE; }
 "+"                                         { /* printf("SUM "); */ return SUM; }
 "-"                                         { /* printf("SUB "); */ return SUB; }
 "*"                                         { /* printf("MULT "); */ return MULT; }
@@ -31,6 +32,7 @@ IF                                          { /* printf("IF "); */ return IF; }
 "<="                                        { /* printf("LEQUAL "); */ return LEQUAL; }
 "=="                                        { /* printf("EQUAL "); */ return EQUAL; }
 "!="                                        { /* printf("DIF "); */ return DIF; }
+"!"                                        { /* printf("NOT "); */ return NOT; }
 "("                                         { /* printf("OP "); */ return OP; }
 ")"                                         { /* printf("CP "); */ return CP; }
 "{"                                         { /* printf("OB\n "); */ return OB; }

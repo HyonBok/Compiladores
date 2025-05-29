@@ -3,16 +3,7 @@
 // Definições das tabelas globais
 Symbol *symbolTable[TABLE_SIZE] = {0};
 
-int global_index = 1;
-int global_line = 1;
-
-void add_line() {
-    global_line++;
-}
-
-int get_line() {
-    return global_line;
-}
+int global_index = 0;
 
 // Função de hash simples
 unsigned int hash(const char *str) {
@@ -48,34 +39,44 @@ void add_symbol(const char *name, VarType type) {
       perror("strdup failed");
       exit(EXIT_FAILURE);
     }
-
+    
     newSymbol->type = type;
     newSymbol->next = symbolTable[index];
     symbolTable[index] = newSymbol;
 }
 
+Symbol *get_symbol(const char *name) {
+    unsigned int index = hash(name);
+    Symbol *symbol = symbolTable[index];
+    while (symbol) {
+        if (strcmp(symbol->name, name) == 0) {
+            return symbol;
+        }
+        symbol = symbol->next;
+    }
+    return NULL; // Não encontrado
+}
+
 // Adiciona temporário
-Temp *add_temp(int value, int unique) {
-    Temp *temp = malloc(sizeof(Temp));
+char *add_temp(int value, int unique) {
+    char *temp = malloc(20 * sizeof(char));
     if (!temp) {
       perror("malloc failed");
       exit(EXIT_FAILURE);
     }
     
-    temp->unique = unique;
-    temp->value = malloc(20 * sizeof(char));
     if(unique) {
-        temp->value = strdup(value);
+        snprintf(temp, 20, "%d", value);
     }
     else{
-        snprintf(temp->value, 20, "t%d", global_index);
+        snprintf(temp, 20, "t%d", global_index);
+        global_index++;
     }
 
-    global_index++;
     return temp;
 }
 
-Campo *add_campo(int inicio, int tamanho) {
+Campo *add_campo(int inicio, int tamanho, int line) {
     Campo *campo = malloc(sizeof(Campo));
     if (!campo) {
       perror("malloc failed");
@@ -83,6 +84,6 @@ Campo *add_campo(int inicio, int tamanho) {
     }
     campo->inicio = inicio;
     campo->tamanho = tamanho;
-    campo->linha = global_line;
+    campo->linha = line;
     return campo;
 }
