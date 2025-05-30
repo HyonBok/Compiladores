@@ -21,6 +21,8 @@
 [Ee][Ll][Ss][Ee]                            { /* printf("ELSE "); */ return ELSE; }
 [Tt][Rr][Uu][Ee]                            { /* printf("TRUE "); */ return BTRUE; }
 [Ff][Aa][Ll][Ss][Ee]                        { /* printf("FALSE "); */ return BFALSE; }
+[Aa][Nn][Dd]                                { /* printf("FALSE "); */ return AND; }
+[Oo][Rr]                                    { /* printf("FALSE "); */ return OR; }
 "+"                                         { /* printf("SUM "); */ return SUM; }
 "-"                                         { /* printf("SUB "); */ return SUB; }
 "*"                                         { /* printf("MULT "); */ return MULT; }

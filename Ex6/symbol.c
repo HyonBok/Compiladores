@@ -75,15 +75,3 @@ char *add_temp(int value, int unique) {
 
     return temp;
 }
-
-Campo *add_campo(int inicio, int tamanho, int line) {
-    Campo *campo = malloc(sizeof(Campo));
-    if (!campo) {
-      perror("malloc failed");
-      exit(EXIT_FAILURE);
-    }
-    campo->inicio = inicio;
-    campo->tamanho = tamanho;
-    campo->linha = line;
-    return campo;
-}

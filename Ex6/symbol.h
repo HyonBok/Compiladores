@@ -15,12 +15,6 @@ typedef enum {
     BOOL_VAR
 } VarType;
 
-typedef struct Campo {
-    int inicio;
-    int tamanho;
-    int linha;
-} Campo;
-
 typedef struct Symbol {
     char *name;
     VarType type;
@@ -35,6 +29,5 @@ unsigned int hash(const char *str);
 void add_symbol(const char *name, VarType type);
 Symbol *get_symbol(const char *name);
 char *add_temp(int value, int unique);
-Campo *add_campo(int inicio, int tamanho, int line);
 
 #endif // SYMBOL_H

@@ -10,6 +10,8 @@
   char textoAuxiliar[100];
 
   int global_line = 1;
+  // Encadear até 10 if's
+  int origem_if[10] = {0};
 %}
 
 %union {
@@ -17,27 +19,25 @@
     float fval;
     char cval;
 	char* string;
-	Campo* campo;
 }
 
 %token <fval> NUM
 %token SUM SUB MULT DIV ATB
-%token IF ELSE 
+%token IF 
 %token EQUAL LESS GREATER LEQUAL DIF GEQUAL AND OR NOT
 %token OB CB OP CP
 %token BTRUE BFALSE
 %token INT
 %token END
 %token <string> ID
-%type <campo> expr_logica 
-%type <string> termo fator exp
+%type <string> termo fator exp expr_logica
 
 
 %left SUM SUB
 %left MULT DIV
 %right ATB
-%left EQUAL /* LESS GREATER LEQUAL GEQUAL DIF */
-//%left AND OR
+%left EQUAL LESS GREATER LEQUAL GEQUAL DIF
+%left AND OR
 %right NOT
 
 %start programa
@@ -87,26 +87,60 @@ comandos:
 
 comando:
 	comando_if
-	| atrib 
+	| atribs 
 ;
 
 comando_if:
-	IF OP expr_logica CP OB atribs CB { 
-		int origem = $3->inicio;
-		int destino = origem + 3;
-		memmove(&textoFinal[destino], &textoFinal[origem], 1000);
-		memcpy(textoFinal + origem, "if ", 3);
+	IF OP expr_logica CP { 
+		int if_atual = 0;
+		while(origem_if[if_atual] != 0){
+			if_atual++;
+		}
+		int casoSe = global_line + if_atual + 2;
+		origem_if[if_atual] = strlen(textoFinal);
+		int tamanho_condicao = strlen($3);
+		int tamanho_if = tamanho_condicao + 3;
+		int pos_insercao_if = origem_if[if_atual] + tamanho_if;
+
+		memmove(&textoFinal[pos_insercao_if], &textoFinal[origem_if[if_atual]], strlen(&textoFinal[origem_if[if_atual]]) + 1);
+
+		snprintf(textoAuxiliar, sizeof(textoAuxiliar), "if %s", $3);
+		memcpy(&textoFinal[origem_if[if_atual]], textoAuxiliar, tamanho_if);
 		
-		int casoSe = $3->linha + 4;
-		int casoSenao = global_line + 3;
-		snprintf(textoAuxiliar, sizeof(textoAuxiliar), "goto %d\ngoto %d\n", casoSe, casoSenao);
-		int tamanhoGoto = strlen(textoAuxiliar);
-		origem += $3->tamanho;
-		destino = origem + tamanhoGoto;
-		int bytes_a_mover = strlen(&textoFinal[origem]) + 1; 
-		memmove(&textoFinal[destino], &textoFinal[origem], bytes_a_mover);
-		memcpy(textoFinal + origem + 2, textoAuxiliar, tamanhoGoto);
+		snprintf(textoAuxiliar, sizeof(textoAuxiliar), " goto %d\n", casoSe);
+		int tamanho_goto = strlen(textoAuxiliar);
+
+		origem_if[if_atual] += tamanho_condicao + 1;
+		// Calcula nova posição para inserir os gotos
+		int pos_insercao_goto = origem_if[if_atual]; // +1 para espaço ou separador
+		int pos_final_goto = pos_insercao_goto + tamanho_goto;
+		
+		// Move o conteúdo para abrir espaço para os gotos
+		memmove(&textoFinal[pos_final_goto], &textoFinal[pos_insercao_goto], strlen(&textoFinal[pos_insercao_goto]) + 1);
+		
+		// Insere os gotos
+		memcpy(&textoFinal[pos_insercao_goto + 2], textoAuxiliar, tamanho_goto);
+
+		origem_if[if_atual] += tamanho_goto;
+		
 		global_line++;
+	} OB comandos CB { 
+		int if_atual = 9;
+		while(if_atual > 0 && origem_if[if_atual] == 0){
+			if_atual--;
+		}
+   		global_line++;
+		int casoSenao = global_line + if_atual; 
+
+		snprintf(textoAuxiliar, sizeof(textoAuxiliar), "goto %d\n", casoSenao);
+		int tamanho_goto = strlen(textoAuxiliar);
+
+		int pos_insercao_goto = origem_if[if_atual];
+		int pos_final_goto = pos_insercao_goto + tamanho_goto;
+
+		memmove(&textoFinal[pos_final_goto], &textoFinal[pos_insercao_goto], strlen(&textoFinal[pos_insercao_goto]) + 1);
+		memcpy(&textoFinal[pos_insercao_goto + 2], textoAuxiliar, tamanho_goto);
+		origem_if[if_atual] = 0;
 	}
 ;
 
@@ -160,131 +194,83 @@ termo:
 
 fator:
     NUM { $$ = add_temp($1, 1); }
-	| ID
-    | OP exp CP { $$ = $2; }
+	| ID { if(!get_symbol($1)) { yyerror("Variável não declarada"); exit(EXIT_FAILURE); } }
+	| OP exp CP { $$ = $2; }
 ;
 
 expr_logica:
-	BTRUE { 
-		int lenTextoFinal = strlen(textoFinal);
-		int tamanho = 6;
-		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		snprintf(textoFinal + lenTextoFinal, espaco, "TRUE ");
-		$$ = add_campo(lenTextoFinal, tamanho, global_line);
-		
-		global_line++;
+	exp { 
+		$$ = $1;
+	}
+	| BTRUE { 
+		$$ = add_temp(1, 1);
 	}
 	| BFALSE { 
-		int lenTextoFinal = strlen(textoFinal);
-		int tamanho = 7;
-		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		snprintf(textoFinal + lenTextoFinal, espaco, "FALSE ");
-		$$ = add_campo(lenTextoFinal, tamanho, global_line);
-		
-		global_line++;
-	}/*
+		$$ = add_temp(0, 1);
+	}
 	| NOT expr_logica { 
 		int lenTextoFinal = strlen(textoFinal);
-		memmove(textoFinal + lenTextoFinal,
-        		textoFinal + lenTextoFinal + tamanho,
-        		strlen(textoFinal + lenTextoFinal + tamanho) + 1);
-	}*/
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		$$ = add_temp(0, 0);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = !%s\n", $$, $2); 
+		global_line++;
+	}
   	| exp EQUAL exp { 
 		int lenTextoFinal = strlen(textoFinal);
-		int tamanho = 6;
-		
-		tamanho += strlen($1) + strlen($3);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s == %s ", $1, $3);
-		$$ = add_campo(lenTextoFinal, tamanho, global_line);
-		
+		$$ = add_temp(0, 0);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s == %s\n", $$, $1, $3); 
 		global_line++;
 	}
 	| exp LEQUAL exp { 
 		int lenTextoFinal = strlen(textoFinal);
-		int tamanho = 6;
-		
-		tamanho += strlen($1) + strlen($3);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s <= %s ", $1, $3);
-		$$ = add_campo(lenTextoFinal, tamanho, global_line);
-		
+		$$ = add_temp(0, 0);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s <= %s\n", $$, $1, $3); 
 		global_line++;
 	 }
 	| exp GEQUAL exp { 
 		int lenTextoFinal = strlen(textoFinal);
-		int tamanho = 6;
-
-		tamanho += strlen($1) + strlen($3);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s >= %s ", $1, $3);
-		$$ = add_campo(lenTextoFinal, tamanho, global_line);
-		
+		$$ = add_temp(0, 0);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s >= %s\n", $$, $1, $3); 
 		global_line++;
 	 }
 	| exp DIF exp { 
 		int lenTextoFinal = strlen(textoFinal);
-		int tamanho = 6;
-
-		tamanho += strlen($1) + strlen($3);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s != %s ", $1, $3);
-		$$ = add_campo(lenTextoFinal, tamanho, global_line);
-		
+		$$ = add_temp(0, 0);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s != %s\n", $$, $1, $3); 
 		global_line++;
 	 }
 	| exp LESS exp { 
 		int lenTextoFinal = strlen(textoFinal);
-		int tamanho = 5;
-
-		tamanho += strlen($1) + strlen($3);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s < %s ", $1, $3);
-		$$ = add_campo(lenTextoFinal, tamanho, global_line);
-		
+		$$ = add_temp(0, 0);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s < %s\n", $$, $1, $3); 
 		global_line++;
 	 }
 	| exp GREATER exp { 
 		int lenTextoFinal = strlen(textoFinal);
-		int tamanho = 5;
-
-		tamanho += strlen($1) + strlen($3);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s > %s ", $1, $3);
-		$$ = add_campo(lenTextoFinal, tamanho, global_line);
-		
+		$$ = add_temp(0, 0);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s > %s\n", $$, $1, $3); 
 		global_line++;
 	 }
-	 /*
 	| expr_logica OR expr_logica { 
-		if($1->unique == 1 && $3->unique == 1){
-			printf("%d || %d ", $1->value, $3->value); 
-		}
-		else if($1->unique == 0 && $3->unique == 1){
-			printf("t%d || %d ", $1->index, $3->value); 
-		}
-		else if($1->unique == 1 && $3->unique == 0){
-			printf("%d || t%d ", $1->value, $3->index); 
-		}
-		else{
-			printf("t%d || t%d ", $1->index, $3->index); 
-		}
+		int lenTextoFinal = strlen(textoFinal);
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		$$ = add_temp(0, 0);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s or %s\n", $$, $1, $3);
+		global_line++;
 	 }
 	| expr_logica AND expr_logica { 
-		if($1->unique == 1 && $3->unique == 1){
-			printf("%d && %d ", $1->value, $3->value); 
-		}
-		else if($1->unique == 0 && $3->unique == 1){
-			printf("t%d && %d ", $1->index, $3->value); 
-		}
-		else if($1->unique == 1 && $3->unique == 0){
-			printf("%d && t%d ", $1->value, $3->index); 
-		}
-		else{
-			printf("t%d && t%d ", $1->index, $3->index); 
-		}
+		int lenTextoFinal = strlen(textoFinal);
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		$$ = add_temp(0, 0);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s and %s\n", $$, $1, $3);
+		global_line++;
 	 }
-	 */
 ;
 
 /* End of grammar. */
