@@ -21,18 +21,20 @@
     float fval;
     char cval;
 	char* string;
+	Temp* temp;
 }
 
-%token <fval> NUM
+%token <ival> NUMI
+%token <fval> NUMF
 %token SUM SUB MULT DIV ATB
 %token IF ELSE
 %token EQUAL LESS GREATER LEQUAL DIF GEQUAL AND OR NOT
 %token OB CB OP CP
 %token BTRUE BFALSE
-%token INT
+%token INT FLOAT BOOL
 %token END
 %token <string> ID
-%type <string> termo fator exp expr_logica
+%type <temp> termo fator exp expr_logica
 
 
 %left SUM SUB
@@ -75,10 +77,48 @@ declaracao:
 		global_line++; 
 	}
 	| INT ID ATB exp END { 
+		if ($4->type != INT_VAR) {
+			yyerror("Tipo incompatível: atribuição de expressão não inteira a variável inteira.");
+			YYABORT;
+  	  	}		
 		add_symbol($2, INT_VAR);
 		int lenTextoFinal = strlen(textoFinal);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s\n", $2, $4);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s\n", $2, $4->value);
+	}
+	| FLOAT ID END { 
+		add_symbol($2, FLOAT_VAR);
+		int lenTextoFinal = strlen(textoFinal);
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = 0.0\n", $2);
+		global_line++; 
+	}
+	| FLOAT ID ATB exp END { 
+		if ($4->type != FLOAT_VAR) {
+			yyerror("Tipo incompatível: atribuição de expressão não flutuante a variável flutuante.");
+			YYABORT;
+  	  	}		
+		add_symbol($2, FLOAT_VAR);
+		int lenTextoFinal = strlen(textoFinal);
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s\n", $2, $4->value);
+	}
+	| BOOL ID END { 
+		add_symbol($2, BOOL_VAR);
+		int lenTextoFinal = strlen(textoFinal);
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = false\n", $2);
+		global_line++; 
+	}
+	| BOOL ID ATB exp END { 
+		if ($4->type != BOOL_VAR) {
+			yyerror("Tipo incompatível: atribuição de expressão não booleana a variável booleana.");
+			YYABORT;
+  	  	}		
+		add_symbol($2, BOOL_VAR);
+		int lenTextoFinal = strlen(textoFinal);
+		int espaco = sizeof(textoFinal) - lenTextoFinal;
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s\n", $2, $4->value);
 	}
 ;
 
@@ -100,13 +140,13 @@ comando_if:
 		}
 		int casoSe = global_line + if_atual + 2;
 		origem_if[if_atual] = strlen(textoFinal);
-		int tamanho_condicao = strlen($3);
+		int tamanho_condicao = strlen($3->value);
 		int tamanho_if = tamanho_condicao + 3;
 		int pos_insercao_if = origem_if[if_atual] + tamanho_if;
 
 		memmove(&textoFinal[pos_insercao_if], &textoFinal[origem_if[if_atual]], strlen(&textoFinal[origem_if[if_atual]]) + 1);
 
-		snprintf(textoAuxiliar, sizeof(textoAuxiliar), "if %s", $3);
+		snprintf(textoAuxiliar, sizeof(textoAuxiliar), "if %s", $3->value);
 		memcpy(&textoFinal[origem_if[if_atual]], textoAuxiliar, tamanho_if);
 		
 		snprintf(textoAuxiliar, sizeof(textoAuxiliar), " goto %d\n", casoSe);
@@ -191,10 +231,20 @@ atribs:
  	| atribs atrib
 
 atrib:
-	ID ATB exp END { 
+	ID ATB exp END {
+		Symbol* symbol = get_symbol($1);
+		if(symbol == NULL) {
+   			yyerror("Variável não declarada.");
+   			exit(EXIT_FAILURE);
+  		}
+		if(symbol->type != $3->type) {
+			snprintf(textoAuxiliar, sizeof(textoAuxiliar), "Tipos diferentes. Não é possível atribuir %s em %s.", var_type_to_string($3->type), var_type_to_string(symbol->type));
+			yyerror(textoAuxiliar);
+	  		exit(EXIT_FAILURE);
+		} 
 		int lenTextoFinal = strlen(textoFinal);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s\n", $1, $3);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s\n", $1, $3->value);
 		global_line++;
 	}
 ;
@@ -204,15 +254,31 @@ exp:
     | exp SUM exp { 
 			int lenTextoFinal = strlen(textoFinal);
 			int espaco = sizeof(textoFinal) - lenTextoFinal;
-			$$ = add_temp(0, 0); 
-			snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s + %s\n", $$, $1, $3);
+			if($1->type == BOOL_VAR) {
+				yyerror("Tipos booleanos não podem ser somados.");
+				exit(EXIT_FAILURE);
+		 	}
+			if($1->type != $3->type) {
+				yyerror("Tipos diferentes. Não é possível somar.");
+				exit(EXIT_FAILURE);
+   	   		}	
+			$$ = add_temp(0, 0, $1->type); 
+			snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s + %s\n", $$->value, $1->value, $3->value);
 			global_line++;
 		}
     | exp SUB exp { 
 			int lenTextoFinal = strlen(textoFinal);
 			int espaco = sizeof(textoFinal) - lenTextoFinal;
-			$$ = add_temp(0, 0); 
-			snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s - %s\n", $$, $1, $3);
+			if($1->type == BOOL_VAR) {
+				yyerror("Tipos booleanos não podem ser subtraídos.");
+				exit(EXIT_FAILURE);
+		 	}
+			if($1->type != $3->type) {
+				yyerror("Tipos diferentes. Não é possível subtrair.");
+				exit(EXIT_FAILURE);
+   	   		}
+			$$ = add_temp(0, 0, $1->type); 
+			snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s - %s\n", $$->value, $1->value, $3->value);
 			global_line++;
 		}
 ;
@@ -222,21 +288,47 @@ termo:
     | termo MULT termo { 
 			int lenTextoFinal = strlen(textoFinal);
 			int espaco = sizeof(textoFinal) - lenTextoFinal;
-			$$ = add_temp(0, 0); 
-			snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s * %s\n", $$, $1, $3);
+			if($1->type == BOOL_VAR) {
+				yyerror("Tipos booleanos não podem ser multiplicados.");
+				exit(EXIT_FAILURE);
+		 	}
+			if($1->type != $3->type) {
+				yyerror("Tipos diferentes. Não é possível multiplicar.");
+				exit(EXIT_FAILURE);
+   	   		}
+			$$ = add_temp(0, 0, $1->type);
+			snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s * %s\n", $$->value, $1->value, $3->value);
 			global_line++;
 		}
     | termo DIV termo { 
 			int lenTextoFinal = strlen(textoFinal);
 			int espaco = sizeof(textoFinal) - lenTextoFinal;
-			$$ = add_temp(0, 0);
-			snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s / %s\n", $$, $1, $3); 
+			if($1->type == BOOL_VAR) {
+				yyerror("Tipos booleanos não podem ser multiplicados.");
+				exit(EXIT_FAILURE);
+		 	}
+			if($1->type != $3->type) {
+				yyerror("Tipos diferentes. Não é possível dividir.");
+				exit(EXIT_FAILURE);
+   	   		}
+			$$ = add_temp(0, 0, $1->type);
+			snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s / %s\n", $$->value, $1->value, $3->value);
 			global_line++;
 		}
 
 fator:
-    NUM { $$ = add_temp($1, 1); }
-	| ID { if(!get_symbol($1)) { yyerror("Variável não declarada"); exit(EXIT_FAILURE); } }
+    NUMI { $$ = add_temp($1, 1, INT_VAR); }
+    | NUMF { $$ = add_temp($1, 1, FLOAT_VAR); }
+    | BTRUE { $$ = add_temp(1, 1, BOOL_VAR); }
+    | BFALSE { $$ = add_temp(0, 1, BOOL_VAR); }
+	| ID { 
+		Symbol* symbol = get_symbol($1);
+		if (symbol == NULL) {
+			yyerror("Variável não declarada.");
+			exit(EXIT_FAILURE);
+  		}
+		$$ = add_temp(0, 0, symbol->type);
+	 }
 	| OP exp CP { $$ = $2; }
 ;
 
@@ -244,73 +336,99 @@ expr_logica:
 	exp { 
 		$$ = $1;
 	}
-	| BTRUE { 
-		$$ = add_temp(1, 1);
-	}
-	| BFALSE { 
-		$$ = add_temp(0, 1);
-	}
 	| NOT expr_logica { 
 		int lenTextoFinal = strlen(textoFinal);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		$$ = add_temp(0, 0);
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s = !%s\n", $$, $2); 
+		$$ = add_temp(0, 0, BOOL_VAR);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = !%s\n", $$->value, $2->value); 
 		global_line++;
 	}
   	| exp EQUAL exp { 
+		if($1->type != $3->type) {
+   			yyerror("Tipos diferentes. Não é possível comparar.");
+   			exit(EXIT_FAILURE);
+  		}
 		int lenTextoFinal = strlen(textoFinal);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		$$ = add_temp(0, 0);
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s == %s\n", $$, $1, $3); 
+		$$ = add_temp(0, 0, BOOL_VAR);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s == %s\n", $$->value, $1->value, $3->value); 
 		global_line++;
 	}
 	| exp LEQUAL exp { 
+		if($1->type != $3->type) {
+   			yyerror("Tipos diferentes. Não é possível comparar.");
+   			exit(EXIT_FAILURE);
+  		}
 		int lenTextoFinal = strlen(textoFinal);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		$$ = add_temp(0, 0);
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s <= %s\n", $$, $1, $3); 
+		$$ = add_temp(0, 0, BOOL_VAR);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s <= %s\n", $$->value, $1->value, $3->value); 
 		global_line++;
 	 }
 	| exp GEQUAL exp { 
+		if($1->type != $3->type) {
+			yyerror("Tipos diferentes. Não é possível comparar.");
+			exit(EXIT_FAILURE);
+		}
 		int lenTextoFinal = strlen(textoFinal);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		$$ = add_temp(0, 0);
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s >= %s\n", $$, $1, $3); 
+		$$ = add_temp(0, 0, BOOL_VAR);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s >= %s\n", $$->value, $1->value, $3->value); 
 		global_line++;
-	 }
+	}
 	| exp DIF exp { 
+		if($1->type != $3->type) {
+   			yyerror("Tipos diferentes. Não é possível comparar.");
+   			exit(EXIT_FAILURE);
+  		}
 		int lenTextoFinal = strlen(textoFinal);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		$$ = add_temp(0, 0);
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s != %s\n", $$, $1, $3); 
+		$$ = add_temp(0, 0, BOOL_VAR);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s != %s\n", $$->value, $1->value, $3->value); 
 		global_line++;
 	 }
 	| exp LESS exp { 
+		if($1->type != $3->type) {
+   			yyerror("Tipos diferentes. Não é possível comparar.");
+   			exit(EXIT_FAILURE);
+  		}
 		int lenTextoFinal = strlen(textoFinal);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		$$ = add_temp(0, 0);
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s < %s\n", $$, $1, $3); 
+		$$ = add_temp(0, 0, BOOL_VAR);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s < %s\n", $$->value, $1->value, $3->value); 
 		global_line++;
 	 }
 	| exp GREATER exp { 
+		if($1->type != $3->type) {
+   			yyerror("Tipos diferentes. Não é possível comparar.");
+   			exit(EXIT_FAILURE);
+  		}
 		int lenTextoFinal = strlen(textoFinal);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		$$ = add_temp(0, 0);
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s > %s\n", $$, $1, $3); 
+		$$ = add_temp(0, 0, BOOL_VAR);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s > %s\n", $$->value, $1->value, $3->value); 
 		global_line++;
 	 }
 	| expr_logica OR expr_logica { 
+		if($1->type != $3->type) {
+   			yyerror("Tipos diferentes. Não é possível comparar.");
+   			exit(EXIT_FAILURE);
+  		}
 		int lenTextoFinal = strlen(textoFinal);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		$$ = add_temp(0, 0);
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s or %s\n", $$, $1, $3);
+		$$ = add_temp(0, 0, BOOL_VAR);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s or %s\n", $$->value, $1->value, $3->value);
 		global_line++;
 	 }
 	| expr_logica AND expr_logica { 
+		if($1->type != $3->type) {
+   			yyerror("Tipos diferentes. Não é possível comparar.");
+   			exit(EXIT_FAILURE);
+  		}
 		int lenTextoFinal = strlen(textoFinal);
 		int espaco = sizeof(textoFinal) - lenTextoFinal;
-		$$ = add_temp(0, 0);
-		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s and %s\n", $$, $1, $3);
+		$$ = add_temp(0, 0, BOOL_VAR);
+		snprintf(textoFinal + lenTextoFinal, espaco, "%s = %s and %s\n", $$->value, $1->value, $3->value);
 		global_line++;
 	 }
 ;

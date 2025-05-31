@@ -3,44 +3,13 @@ int b;
 int c;
 int d;
 
-if(a){
-    a = 2;
-    b = 8 + 5;
-    if(true){
-        a = a * 2;
-    }
-    else{
-        b = c;
-    }
-    a = 3 + 5 / 2;
+if(true){
+    a = 1;
+    c = 7;
+    d = 8;
 }
 else{
-    c = 3;
-    d = a + b;
-    if(false){
-        b = 2;
-    }
+    a = 9;
+    d = 23;
 }
-
-
 b = 3 + 2;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

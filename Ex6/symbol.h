@@ -15,6 +15,11 @@ typedef enum {
     BOOL_VAR
 } VarType;
 
+typedef struct Temp {
+    char *value;
+    VarType type;
+} Temp;
+
 typedef struct Symbol {
     char *name;
     VarType type;
@@ -28,6 +33,7 @@ extern Symbol *symbolTable[TABLE_SIZE];
 unsigned int hash(const char *str);
 void add_symbol(const char *name, VarType type);
 Symbol *get_symbol(const char *name);
-char *add_temp(int value, int unique);
+Temp *add_temp(int value, int unique, VarType type);
+const char* var_type_to_string(VarType type);
 
 #endif // SYMBOL_H

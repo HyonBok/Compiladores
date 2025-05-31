@@ -15,8 +15,11 @@
 
 "/*".*"*/"                                  ;
 "//".*[\n]                                  ;
-[+-]?[0-9]+                                 { /* printf("NUMI "); */ yylval.fval = atof(yytext); return NUM; }
+[+-]?[0-9]*\.[0-9]+                          { /* printf("NUMF "); */ yylval.fval = atof(yytext); return NUMF; }
+[+-]?[0-9]+                                 { /* printf("NUMI "); */ yylval.ival = atoi(yytext); return NUMI; }
 [Ii][Nn][Tt]                                { /* printf("INT "); */ return INT; }
+[Ff][Ll][Oo][Aa][Tt]                        { /* printf("FLOAT "); */ return FLOAT; }
+[Bb][Oo][Oo][Ll]                            { /* printf("BOOL "); */ return BOOL; }
 [Ii][Ff]                                    { /* printf("IF "); */ return IF; }
 [Ee][Ll][Ss][Ee]                            { /* printf("ELSE "); */ return ELSE; }
 [Tt][Rr][Uu][Ee]                            { /* printf("TRUE "); */ return BTRUE; }

@@ -1,15 +1,9 @@
 int a;
-int b;
-int c;
-int d;
+int b = 3;
+float c = 2.0;
+bool d = true;
 
-if(true){
-    a = 1;
-    c = 7;
-    d = 8;
-}
-else{
-    a = 9;
-    d = 23;
-}
-b = 3 + 2;
+c = 2.5 + 6.3;
+a = a + b;
+
+

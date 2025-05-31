@@ -58,20 +58,36 @@ Symbol *get_symbol(const char *name) {
 }
 
 // Adiciona temporário
-char *add_temp(int value, int unique) {
-    char *temp = malloc(20 * sizeof(char));
+Temp *add_temp(int value, int unique, VarType type) {
+    Temp *temp = malloc(sizeof(Temp));
     if (!temp) {
       perror("malloc failed");
       exit(EXIT_FAILURE);
     }
-    
+    temp->value = malloc(20 * sizeof(char));
+    if (!temp->value) {
+        perror("malloc failed");
+        exit(EXIT_FAILURE);
+    }
+
     if(unique) {
-        snprintf(temp, 20, "%d", value);
+        snprintf(temp->value, 20, "%d", value);
     }
     else{
-        snprintf(temp, 20, "t%d", global_index);
+        snprintf(temp->value, 20, "t%d", global_index);
         global_index++;
     }
 
+    temp->type = type;
+
     return temp;
+}
+
+const char* var_type_to_string(VarType type) {
+    switch (type) {
+        case INT_VAR: return "int";
+        case FLOAT_VAR: return "float";
+        case BOOL_VAR: return "bool";
+        default: return "unknown";
+    }
 }
