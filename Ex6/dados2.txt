@@ -1,30 +1,29 @@
 int a;
 int b;
 int c;
+int d;
 
-if(a or b){
-    a = 7;
-    if(c){
-        c = 2;
-        if(a){
-            b = 57;
-            c = 19;
-        }
-        a = 3 + 5;
+if(a){
+    a = 2;
+    b = 8 + 5;
+    if(true){
+        a = a * 2;
     }
-    a = 1;
-    b = 3 - 1;
-
-    if(a){
-        a = a + a;
+    else{
+        b = c;
+    }
+    a = 3 + 5 / 2;
+}
+else{
+    c = 3;
+    d = a + b;
+    if(false){
+        b = 2;
     }
 }
 
+
 b = 3 + 2;
-
-
-
-
 
 
 

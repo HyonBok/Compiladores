@@ -6,12 +6,14 @@
   int yylex (void);
   void yyerror (char const *);
 
-  char textoFinal[1000];
+  char textoFinal[5000];
   char textoAuxiliar[100];
 
   int global_line = 1;
   // Encadear até 10 if's
   int origem_if[10] = {0};
+  int camada_else = 0;
+  int pos_then;
 %}
 
 %union {
@@ -23,7 +25,7 @@
 
 %token <fval> NUM
 %token SUM SUB MULT DIV ATB
-%token IF 
+%token IF ELSE
 %token EQUAL LESS GREATER LEQUAL DIF GEQUAL AND OR NOT
 %token OB CB OP CP
 %token BTRUE BFALSE
@@ -111,20 +113,24 @@ comando_if:
 		int tamanho_goto = strlen(textoAuxiliar);
 
 		origem_if[if_atual] += tamanho_condicao + 1;
-		// Calcula nova posição para inserir os gotos
+		// Calcula nova posição para inserir o goto
 		int pos_insercao_goto = origem_if[if_atual]; // +1 para espaço ou separador
 		int pos_final_goto = pos_insercao_goto + tamanho_goto;
 		
-		// Move o conteúdo para abrir espaço para os gotos
+		// Move o conteúdo para abrir espaço para o goto
 		memmove(&textoFinal[pos_final_goto], &textoFinal[pos_insercao_goto], strlen(&textoFinal[pos_insercao_goto]) + 1);
 		
-		// Insere os gotos
+		// Insere o goto
 		memcpy(&textoFinal[pos_insercao_goto + 2], textoAuxiliar, tamanho_goto);
 
 		origem_if[if_atual] += tamanho_goto;
 		
 		global_line++;
-	} OB comandos CB { 
+	} then
+;
+
+then:
+	OB comandos CB { 
 		int if_atual = 9;
 		while(if_atual > 0 && origem_if[if_atual] == 0){
 			if_atual--;
@@ -141,6 +147,42 @@ comando_if:
 		memmove(&textoFinal[pos_final_goto], &textoFinal[pos_insercao_goto], strlen(&textoFinal[pos_insercao_goto]) + 1);
 		memcpy(&textoFinal[pos_insercao_goto + 2], textoAuxiliar, tamanho_goto);
 		origem_if[if_atual] = 0;
+	}
+	| OB comandos CB ELSE  { 
+		int if_atual = 9;
+		while(if_atual > 0 && origem_if[if_atual] == 0){
+			if_atual--;
+		}
+   		global_line++;
+		int casoSenao = global_line + if_atual + 1; 
+
+		snprintf(textoAuxiliar, sizeof(textoAuxiliar), "goto %d\n", casoSenao);
+		int tamanho_goto = strlen(textoAuxiliar);
+
+		int pos_insercao_goto = origem_if[if_atual];
+		int pos_final_goto = pos_insercao_goto + tamanho_goto;
+
+		memmove(&textoFinal[pos_final_goto], &textoFinal[pos_insercao_goto], strlen(&textoFinal[pos_insercao_goto]) + 1);
+		memcpy(&textoFinal[pos_insercao_goto + 2], textoAuxiliar, tamanho_goto);
+		origem_if[if_atual] = 0;
+
+		// Usado posteriormente
+		pos_then = strlen(textoFinal);
+		camada_else = if_atual;
+	} OB comandos CB {
+		// Ignorar o else
+		// Gerar o texto "goto %d\n"
+		global_line++;
+		snprintf(textoAuxiliar, sizeof(textoAuxiliar), "goto %d\n", global_line + camada_else);
+		int tamanho_goto = strlen(textoAuxiliar);
+		int lenTextoFinal = strlen(textoFinal);
+
+		// Mover o conteúdo a partir de pos_then para frente, para abrir espaço
+		memmove(&textoFinal[pos_then + tamanho_goto], &textoFinal[pos_then], lenTextoFinal - pos_then + 1); 
+		// +1 para mover o '\0'
+
+		// Inserir o texto na posição pos_then
+		memcpy(&textoFinal[pos_then], textoAuxiliar, tamanho_goto);
 	}
 ;
 
