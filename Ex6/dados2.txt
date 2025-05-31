@@ -1,11 +1,45 @@
-/*
-1. t1 = 1
-2. if t1 == 1 goto 4
-3. goto 6
-4. t2 = 2 + 3
-5. t1 = t2
-6. end
-*/
+int a;
+int b;
+int c;
+int d;
+
+if(a){
+    a = 2;
+    b = 8 + 5;
+    if(true){
+        a = a * 2;
+    }
+    else{
+        b = c;
+    }
+    a = 3 + 5 / 2;
+}
+else{
+    c = 3;
+    d = a + b;
+    if(false){
+        b = 2;
+    }
+}
+
+
+b = 3 + 2;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
